@@ -281,7 +281,7 @@ def download_data() -> None:
 
     print('Downloading dataset files...')
     # Get the current round
-    CURRENT_ROUND = napi.get_current_round()
+    # CURRENT_ROUND = napi.get_current_round()
 
     # Check all files if they are parquet and int8. If so, download it. We use
     # the int8 datasets instead of floats to reduce the computing power required
@@ -297,8 +297,8 @@ def download_data() -> None:
     print("Done!")
 
 
-def read_learning_data(features, training_data_path='./data/numerai_training_data_int8.parquet'
-                       , validation_data_path='./data/numerai_validation_data_int8.parquet'):
+def read_learning_data(features, training_data_path='./data/v3/numerai_training_data_int8.parquet'
+                       , validation_data_path='./data/v3/numerai_validation_data_int8.parquet'):
     print('Reading learning data...')
 
     # read in just those features along with era and target columns

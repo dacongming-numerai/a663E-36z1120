@@ -1,0 +1,9 @@
+
+*.csv
+*.parquet
+*.pyc
+*.xml
+*.iml
+*.data-00000-of-00001
+*.index
+checkpoint

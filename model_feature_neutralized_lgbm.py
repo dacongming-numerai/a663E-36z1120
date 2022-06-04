@@ -17,7 +17,7 @@ download_data()
 # process all the Numerai features!)
 with open("features.json", "r") as f:
     feature_metadata = json.load(f)
-features = feature_metadata["feature_sets"]["small"]
+features = feature_metadata["feature_sets"]["legacy"]
 
 # read the training and validation data given the predefined features stored in parquets as pandas DataFrames
 training_data, validation_data = read_learning_data(features)
@@ -35,9 +35,9 @@ gc.collect()
 # define and train your model here using the loaded data sets!
 
 num_feature_neutralization = 50  # parameter for feature neutralization used after we make our predictions
-params = {"n_estimators": 70000,
-          "learning_rate": 0.0005,
-          "max_depth": 6,
+params = {"n_estimators": 90000,
+          "learning_rate": 0.001,
+          "max_depth": 7,
           "num_leaves": 2 ** 6,
           "colsample_bytree": 0.5,
           "subsample": 0.5,

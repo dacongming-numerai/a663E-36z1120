@@ -1,14 +1,14 @@
 import time
 
-from keras import regularizers
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Flatten
-from tensorflow import convert_to_tensor, transpose
+from tensorflow import convert_to_tensor
 import gc
+import tensorflow as tf
+from tensorflow import keras
 
 from numerapi import NumerAPI
 from halo import Halo
 from utils import *
+
 
 start = time.time()
 napi = NumerAPI()
@@ -21,7 +21,7 @@ download_data()
 # process all the Numerai features!)
 with open("features.json", "r") as f:
     feature_metadata = json.load(f)
-features = feature_metadata["feature_sets"]["small"]
+features = feature_metadata["feature_sets"]["medium"]
 
 # read the training and validation data given the predefined features stored in parquets as pandas DataFrames
 training_data, validation_data = read_learning_data(features)
@@ -38,18 +38,33 @@ gc.collect()
 ########################################################################################################################
 # define and train your model here using the loaded data sets!
 model_name = "nn"
-NN_model = Sequential()
+NN_model = keras.models.Sequential()
 num_feature_neutralization = 50
+input_dimension = len(features)
+
+initializer = tf.keras.initializers.HeNormal()
 
 # The Input Layer :
-NN_model.add(Dense(len(features), kernel_initializer='zeros', input_dim = len(features), activation='sigmoid'))
+NN_model.add(keras.layers.Dense(input_dimension, kernel_initializer=initializer, input_dim = len(features), activation='selu'))
+NN_model.add(keras.layers.Dropout(0.2))
 
 # The Hidden Layers :
-NN_model.add(Dense(len(features)//2, kernel_initializer='zeros', activation='sigmoid', bias_regularizer=regularizers.l2(1e-3)))
-NN_model.add(Dense(len(features)//4, kernel_initializer='zeros', activation='sigmoid', bias_regularizer=regularizers.l2(1e-3)))
+layer_neurons = input_dimension
+while layer_neurons > 4:
+    if layer_neurons > 100:
+        dropout = 0.3
+        layer_neurons //= 2
+    elif layer_neurons > 10:
+        dropout = 0.2
+        layer_neurons //= 4
+    else:
+        dropout = 0.1
+        layer_neurons //= 4
+    NN_model.add(keras.layers.Dense(layer_neurons, kernel_initializer=initializer, activation='selu', bias_regularizer=keras.regularizers.l2(1e-5)))
+    NN_model.add(keras.layers.Dropout(dropout))
 
 # The Output Layer :
-NN_model.add(Dense(1, kernel_initializer='zeros', activation='linear'))
+NN_model.add(keras.layers.Dense(1, kernel_initializer='random_uniform', activation='linear'))
 
 # Compile the network :
 NN_model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mse'])
@@ -57,7 +72,14 @@ NN_model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mse'])
 spinner.start('Training model')
 X_train = convert_to_tensor(X_train)
 
-NN_model.fit(X_train, y_train, epochs=5000, batch_size=X_train.shape[0]//100, shuffle=True)
+# Early stopping callback function
+es = tf.keras.callbacks.EarlyStopping(monitor='loss', mode='min', verbose=1, patience=2000, restore_best_weights=True)
+
+# Train the neural network
+NN_model.fit(X_train, y_train, epochs=10000, batch_size=X_train.shape[0]//100, shuffle=True, callbacks=[es])
+# Save weights as checkpoint
+NN_model.save_weights('./checkpoint')
+
 
 spinner.succeed()
 gc.collect()
